@@ -23,10 +23,10 @@ export interface Activity {
   calories: string;
   bpm: string;
   user: string;
-  userImage: string; // URL da imagem do usuário
+  userImage: string; 
   likes: number;
   comments: number;
-  imageUrl: string; // URL da imagem do exercício
+  imageUrl: string; 
 }
 
 export function ActivityCard({ activity }: { activity: Activity }) {

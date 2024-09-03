@@ -10,7 +10,7 @@ export const Layout = styled(Box)`
 
 export const Sidebar = styled(Box)`
   width: 240px;
-  background-color: #000;
+  background-color: #000000;
   color: white;
   display: flex;
   flex-direction: column;
