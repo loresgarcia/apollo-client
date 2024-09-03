@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { CssBaseline, TextField, Box, CircularProgress, Typography } from '@mui/material';
 import { Layout, StyledButton } from './styles';
-import { GET_ACTIVITIES } from '../FeedGeral';
+import { GET_ACTIVITIES_BY_USER } from '../FeedGeral';
 
 const ADD_ACTIVITY = gql`
   mutation AddActivity(
@@ -41,6 +41,22 @@ type FormState = {
   imageUrl: string;
 };
 
+type ActivityType = {
+  id: string;
+  time: string;
+  type: string;
+  distance: string;
+  calories: string;
+  bpm: string;
+  user: string;
+  userImage: string;
+  imageUrl: string;
+};
+
+type QueryResult = {
+  mockActivities: ActivityType[];
+};
+
 const validateForm = (state: FormState) => {
   const errors: { [key: string]: string } = {};
   if (!state.time) errors.time = "Horário é obrigatório";
@@ -70,7 +86,27 @@ export function Publicar() {
 
   const [addActivity, { loading, error }] = useMutation(ADD_ACTIVITY, {
     variables: formState,
-    refetchQueries: [{ query: GET_ACTIVITIES }],
+    update: (cache, { data: { addActivity } }) => {
+    // Atualiza o cache manualmente
+      const data = cache.readQuery<QueryResult>({ query: GET_ACTIVITIES_BY_USER, variables: { user: formState.user } });
+      if (data) {
+        cache.writeQuery({
+          query: GET_ACTIVITIES_BY_USER,
+          variables: { user: formState.user },
+          data: {
+            mockActivities: [...data.mockActivities, addActivity],
+          },
+        });
+      }
+      // Invalida o cache
+      cache.evict({ fieldName: 'mockActivities' });
+      cache.gc();
+      
+    },
+    onError: (err) => {
+      console.error('Mutation error:', err);
+      setErrors({ form: 'Erro ao enviar os dados. Tente novamente mais tarde.' });
+    },
   });
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -80,7 +116,10 @@ export function Publicar() {
       setErrors(validationErrors);
       return;
     }
-    addActivity();
+    addActivity().catch((err) => {
+      console.error('Error during mutation:', err);
+      setErrors({ form: 'Erro ao enviar os dados. Tente novamente mais tarde.' });
+    });
     setFormState({
       time: '',
       type: '',
@@ -109,6 +148,7 @@ export function Publicar() {
         <h2>Publicar treino</h2>
         {loading && <Box display="flex" justifyContent="center"><CircularProgress /></Box>}
         {error && <Typography color="error">Erro ao enviar os dados: {error.message}</Typography>}
+        {errors.form && <Typography color="error">{errors.form}</Typography>}
         <TextField
           fullWidth
           label="URL da Imagem da Atividade"
